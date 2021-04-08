@@ -24,7 +24,4 @@ new_df = pd.concat([
 ], axis=0, ignore_index=True)
 
 new_df = new_df.sample(frac=1).reset_index(drop=True)  # reset index and drop original index
-# new_df.to_csv(small_csv_location[0], index=False)
-# new_df.to_csv(small_csv_location[1], index=False)
-
 [new_df.to_csv(i, index=False) for i in small_csv_location]
