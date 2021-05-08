@@ -87,11 +87,12 @@ class VotingClassifier(BaseEstimator, ClassifierMixin):
             print("`refit` set to False, not refitting the base estimators")
             return
 
-        if len(X) != 3 or len(y) not in (1, 2):
-            raise ValueError("Shape of X should be (n_estimators, n_samples, n_features)"
-                             "Shape of Y should either be (n_estimators, n_samples) or (n_samples,)")
         if not isinstance(y, list):  # make shape (n_estimators, n_samples)
             y = [y for _ in range(len(X))]
+
+        if len(X) != 3 or len(y) != 3:
+            raise ValueError("Length mismatch, len(X) is {} and len(y) is {},"
+                             " both should be equal".format(len(X), len(y)))
 
         self._check_for_fitted()
         self._check_for_samples(X)
@@ -114,15 +115,27 @@ class VotingClassifier(BaseEstimator, ClassifierMixin):
 
         predictions = []
         if self.voting == 'soft':
-            [predictions.append(clf.predict_proba(x)) for (clf, x) in zip(self.clfs, X)]
+            # [predictions.append(clf.predict_proba(x)) for (clf, x) in zip(self.clfs, X)]
+            for (clf, x) in zip(self.clfs, X):
+                try:
+                    predictions.append(clf.predict_proba(x))
+                except AttributeError:  # This will happen if `predict_proba` is not avail. for underlying clf
+
+                    # Can add individual workarounds as per classifier, otherwise do hard voting
+                    if clf.__class__.__name__ == 'LinearSVC':
+                        predictions.append(clf._predict_proba_lr(x))
+                    else:
+                        self.voting = 'hard'
+                        return self.predict(X)
             predictions = np.sum(np.array(predictions), axis=0)
             return np.argmax(predictions, axis=1)
-        elif self.voting == 'hard':
-            [predictions.append(clf.predict(x)) for (clf, x) in zip(self.clfs, X)]
-            predictions = np.array(predictions)
-            predictions = np.apply_along_axis(lambda x: np.argmax(np.bincount(x)),
-                                              axis=0, arr=predictions)
-            return predictions
+
+        # The following is either when `voting` is 'hard' or if 'soft' failed for some reason.
+        [predictions.append(clf.predict(x)) for (clf, x) in zip(self.clfs, X)]
+        predictions = np.array(predictions)
+        predictions = np.apply_along_axis(lambda x: np.argmax(np.bincount(x)),
+                                          axis=0, arr=predictions)
+        return predictions
 
     def predict_proba(self, X):
         """
@@ -144,18 +157,18 @@ class VotingClassifier(BaseEstimator, ClassifierMixin):
 
     def score(self, X, y, **kwargs):
         """
-        Return mean accuracy, given data and labels.
+        Return mean accuracy, given data and labels. Basic Averaging the scores of individual classifiers.
         :param X: same as `fit` method.
         :param y: same as `fit` method.
         :param kwargs: added to match the signature.
         :return: scores: float, a value between 0.0 and 1.0.
         """
-
-        if len(X) != 3 or len(y) not in (1, 2):
-            raise ValueError("Shape of X should be (n_estimators, n_samples, n_features)"
-                             "Shape of Y should either be (n_estimators, n_samples) or (n_samples,)")
         if not isinstance(y, list):  # make shape (n_estimators, n_samples)
             y = [y for _ in range(len(X))]
+
+        if len(X) != 3 or len(y) != 3:
+            raise ValueError("Length mismatch, len(X) is {} and len(y) is {},"
+                             " both should be equal".format(len(X), len(y)))
 
         self._check_for_fitted()
         self._check_for_samples(X)
