@@ -1,5 +1,10 @@
 """
 A lot of code is from `architecture.ipynb`, modularized for better readability.
+Rather than training on ~125,000 names; use `make_subsets.py` to randomly sample (and save) names.
+Following code makes use of N=50 such smaller csvs with each containing 1000 names(500 males, 500 females).
+
+Achieved training accuracy:   93.8 %
+         validation accuracy: 89.3 %
 """
 
 from sklearn.feature_extraction.text import CountVectorizer
@@ -68,8 +73,10 @@ if __name__ == "__main__":
     start = timer()
     print("Collecting data and cleaning data..")
     base_location = Path(__file__).resolve().parents[2]
-    data_location = base_location / r"data/gender_final.csv"
-    X = pd.read_csv(str(data_location))
+    N = 50  # number of subset csvs saved by `make_subsets.py`
+    data_location = base_location / r"data/subsets/gender_final_small"
+    data_location = [str(data_location) + str(i) + '.csv' for i in range(1, N+1)]
+    X = pd.concat([pd.read_csv(location) for location in data_location], axis=0)
     y = X["Gender"]
     X.drop(labels="Gender", inplace=True, axis=1)
     X, X_val, y, y_val = train_test_split(X, y, test_size=0.05, random_state=11)
