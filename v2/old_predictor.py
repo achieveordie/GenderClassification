@@ -1,5 +1,5 @@
 """
-Predictor code for old-GBM based classification, uses sources present in `old` directory.
+Predictor code for old-GBM based classification, uses sources present in `v1` directory.
 One can directly pass name(s) in the command line or wait for the program to prompt.
 """
 
@@ -30,8 +30,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="The central code to predict the gender(s) based on name(s)")
     parser.add_argument('names', metavar='-n', nargs='*', help='Enter name(s) if not then input when asked.')
 
-    dict_saved_location = r'../old/feature.pkl'
-    model_location = r'../old/genderClassificationV4.sav'
+    dict_saved_location = r'../v1/feature.pkl'
+    model_location = r'../v1/genderClassificationV4.sav'
     loaded_model = pickle.load(open(model_location, 'rb'))
 
     vectorizer = CountVectorizer(analyzer='char_wb', ngram_range=(1, 7),
